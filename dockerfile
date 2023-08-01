@@ -1,14 +1,14 @@
-# Use the official httpd base image
-FROM httpd:2.4
+FROM centos:7
 
-# Copy your custom configuration files to the Apache configuration directory
+#CMD yum install -y yum-utils
+#CMD yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
-# Copy your web application files to the Apache document root directory
+RUN yum install httpd -y
 
+COPY index.html var/www/html/index.html
 
-# Expose port 80 (the default HTTP port)
 EXPOSE 80
 
-# Set the command to start the Apache server when the container starts
-CMD ["httpd", "-D", "FOREGROUND"]
+CMD apachectl -D FOREGROUND
+
 
