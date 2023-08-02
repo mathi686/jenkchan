@@ -28,14 +28,10 @@ pipeline {
         }
 
         stage('Push Docker Image') {
-            environment {
-                DOCKER_HUB_USERNAME = "ookeymathi"
-                DOCKER_HUB_PASSWORD = "MathiDocker@123"
-            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'ookeymathi', usernameVariable: 'DOCKER_HUB_USERNAME', passwordVariable: 'DOCKER_HUB_PASSWORD')]) {
                     script {
-                        docker.withRegistry("https://index.docker.io/v1/", "${DOCKER_HUB_USERNAME}", "${DOCKER_HUB_PASSWORD}") {
+                        docker.withRegistry("https://index.docker.io/v1/", DOCKER_HUB_USERNAME, DOCKER_HUB_PASSWORD) {
                             docker.image("${DOCKER_IMAGE_NAME}:${GIT_BRANCH}").push()
                         }
                     }
