@@ -1,38 +1,44 @@
-// pipeline {
-//     agent any
-//
-//     environment {
-//         DOCKER_REGISTRY = "https://hub.docker.com/repository/docker/ookeymathi/ookeyrepo/general"
-//         DOCKER_REGISTRY_CREDENTIALS = credentials('dckr_pat_gu0KJH-EfShqPB2MCJgqJQK8Q7c')
-//         DOCKER_IMAGE_NAME = "httpdko"
-//         DOCKER_IMAGE_TAG = "latest"
-//     }
-//
-//     stages {
-//         stage('Checkout') {
-//             steps {
-//                 // Checkout your source code from the specified Git URL
-//                 git url: 'https://github.com/mathi686/jenkchan.git'
-//             }
-//         }
-//
-//         stage('Build Docker Image') {
-//             steps {
-//                 // Build your Docker image using the Dockerfile in your repository
-//                 sh "docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ."
-//             }
-//         }
-//
-//         stage('Push Docker Image') {
-//             steps {
-//                 // Login to your Docker registry using the provided credentials
-//                 script {
-//                     docker.withRegistry(DOCKER_REGISTRY, DOCKER_REGISTRY_CREDENTIALS) {
-//                         // Push the Docker image to the registry
-//                         sh "docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USERNAME = credentials('ookeymathi') ?: ''
+        DOCKER_HUB_PASSWORD = credentials('MathiDocker@123') ?: ''
+        DOCKER_IMAGE_NAME = 'ookeymathi/newhttpd'
+        GIT_REPO_URL = 'https://github.com/mathi686/jenkchan.git'
+        GIT_BRANCH = 'main' // Replace 'main' with the branch you want to build
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([$class: 'GitSCM',
+                          branches: [[name: "${GIT_BRANCH}"]],
+                          doGenerateSubmoduleConfigurations: false,
+                          extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'source-code']],
+                          submoduleCfg: [],
+                          userRemoteConfigs: [[url: "${GIT_REPO_URL}"]]])
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE_NAME}:${GIT_BRANCH}", "./source-code")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-hub-credentials', url: '') {
+                        docker.withRegistry("https://index.docker.io/v1/", "${DOCKER_HUB_USERNAME}", "${DOCKER_HUB_PASSWORD}") {
+                            docker.image("${DOCKER_IMAGE_NAME}:${GIT_BRANCH}").push()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
