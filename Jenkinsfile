@@ -29,7 +29,7 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([string(credentialsId: 'dckr_pat_Ka7cOZgcVqD2353OSQ2DNR1-GC8', variable: 'DOCKER_TOKEN')]) {
+                withCredentials([string(credentialsId: 'ecb23d14-9582-4e13-b449-7bc2da80e6a9', variable: 'DOCKER_TOKEN')]) {
                     script {
                         docker.withRegistry("https://index.docker.io/v1/", 'token', DOCKER_TOKEN) {
                             docker.image("${DOCKER_IMAGE_NAME}:${GIT_BRANCH}").push()
