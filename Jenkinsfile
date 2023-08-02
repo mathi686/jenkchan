@@ -29,9 +29,9 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'ookeymathi', usernameVariable: 'DOCKER_HUB_USERNAME', passwordVariable: 'DOCKER_HUB_PASSWORD')]) {
+                withCredentials([string(credentialsId: 'dckr_pat_Ka7cOZgcVqD2353OSQ2DNR1-GC8', variable: 'DOCKER_TOKEN')]) {
                     script {
-                        docker.withRegistry("https://index.docker.io/v1/", DOCKER_HUB_USERNAME, DOCKER_HUB_PASSWORD) {
+                        docker.withRegistry("https://index.docker.io/v1/", 'token', DOCKER_TOKEN) {
                             docker.image("${DOCKER_IMAGE_NAME}:${GIT_BRANCH}").push()
                         }
                     }
