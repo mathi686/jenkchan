@@ -33,7 +33,7 @@ pipeline {
                     usernamePassword(credentialsId: 'ecb23d14-9582-4e13-b449-7bc2da80e6a9', usernameVariable: 'DOCKER_HUB_USERNAME', passwordVariable: 'DOCKER_HUB_PASSWORD')
                 ]) {
                     script {
-                        docker.withRegistry("https://hub.docker.com/repositories/ookeymathi", DOCKER_HUB_USERNAME, DOCKER_HUB_PASSWORD) {
+                        docker.withRegistry([credentialsId: 'ecb23d14-9582-4e13-b449-7bc2da80e6a9', url: 'https://hub.docker.com']) {
                             docker.image("${DOCKER_IMAGE_NAME}:${GIT_BRANCH}").push()
                         }
                     }
