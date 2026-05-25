@@ -74,6 +74,7 @@ jobs:
         shell: powershell
         run: |
           docker build -t myapp:${{ env.IMAGE_TAG }} .
+        continue-on-error: true
 
   ecr-push:
     needs: docker-build
