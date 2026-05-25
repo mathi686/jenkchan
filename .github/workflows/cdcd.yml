@@ -61,9 +61,7 @@ jobs:
           mvn verify
 
   docker-build:
-    needs:
-      - unit-test
-      - integration-test
+
 
     runs-on: [self-hosted, Windows, X64, malab]
 
