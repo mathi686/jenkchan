@@ -1,0 +1,17 @@
+name: my workflow
+
+on:
+ push:
+  branches: 
+    - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+  
+    steps:
+     - name: checkout git
+       uses: actions/checkout@v4
+
+     - name: print msg
+       run: echo "hello world"
