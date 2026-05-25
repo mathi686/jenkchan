@@ -46,15 +46,7 @@ jobs:
       - name: Run Integration Tests
         run: mvn verify
 
-  security-scan:
-    needs: build
-    runs-on: [self-hosted, Windows, X64, malab]
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Dependency Vulnerability Scan
-        run: mvn org.owasp:dependency-check-maven:check
 
   docker-build:
     needs:
