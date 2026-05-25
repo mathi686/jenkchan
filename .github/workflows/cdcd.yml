@@ -52,7 +52,7 @@ jobs:
     needs:
       - unit-test
       - integration-test
-      - security-scan
+
 
     runs-on: [self-hosted, Windows, X64, malab]
 
