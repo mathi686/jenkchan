@@ -21,7 +21,7 @@ jobs:
           java -version
           mvn -version
           docker --version
-          aws --version
+          
 
       - name: Build Application
         run: mvn clean compile
