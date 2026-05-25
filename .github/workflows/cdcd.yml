@@ -7,6 +7,14 @@ on:
 
   workflow_dispatch:
 
+env:
+  AWS_REGION: ap-south-1
+  AWS_ACCOUNT_ID: "123456789012"
+  ECR_REPO: myapp
+  ECS_CLUSTER: my-cluster
+  ECS_SERVICE: my-service
+  IMAGE_TAG: ${{ github.run_number }}
+
 jobs:
 
   build:
@@ -17,14 +25,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify Tools
+        shell: powershell
         run: |
           java -version
           mvn -version
           docker --version
-          
+         
 
       - name: Build Application
-        run: mvn clean compile
+        shell: powershell
+        run: |
+          mvn clean package -DskipTests
 
   unit-test:
     needs: build
@@ -34,25 +45,25 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Unit Tests
-        run: mvn test
+        shell: powershell
+        run: |
+          mvn test
 
   integration-test:
-    needs: build
+    needs: unit-test
     runs-on: [self-hosted, Windows, X64, malab]
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Run Integration Tests
-        run: mvn verify
-
-
+        shell: powershell
+        run: |
+          mvn verify
 
   docker-build:
     needs:
-      - unit-test
       - integration-test
-
 
     runs-on: [self-hosted, Windows, X64, malab]
 
@@ -60,18 +71,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build Docker Image
+        shell: powershell
         run: |
-          docker build -t myapp:${{ github.run_number }} .
+          docker build -t myapp:${{ env.IMAGE_TAG }} .
 
   ecr-push:
     needs: docker-build
 
     runs-on: [self-hosted, Windows, X64, malab]
-
-    env:
-      AWS_REGION: ap-south-1
-      AWS_ACCOUNT_ID: 123456789012
-      ECR_REPO: myapp
 
     steps:
       - uses: actions/checkout@v4
@@ -81,23 +88,27 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
+      - name: Verify AWS Access
         shell: powershell
         run: |
-          aws ecr get-login-password --region $env:AWS_REGION |
-          docker login --username AWS --password-stdin "$env:AWS_ACCOUNT_ID.dkr.ecr.$env:AWS_REGION.amazonaws.com"
+          aws sts get-caller-identity
 
-      - name: Tag Image
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag Docker Image
+        shell: powershell
         run: |
-          docker tag myapp:${{ github.run_number }} `
-          $env:AWS_ACCOUNT_ID.dkr.ecr.$env:AWS_REGION.amazonaws.com/$env:ECR_REPO:${{ github.run_number }}
+          docker tag myapp:${{ env.IMAGE_TAG }} `
+          $env:AWS_ACCOUNT_ID.dkr.ecr.$env:AWS_REGION.amazonaws.com/$env:ECR_REPO:${{ env.IMAGE_TAG }}
 
-      - name: Push Image
+      - name: Push Docker Image
+        shell: powershell
         run: |
           docker push `
-          $env:AWS_ACCOUNT_ID.dkr.ecr.$env:AWS_REGION.amazonaws.com/$env:ECR_REPO:${{ github.run_number }}
+          $env:AWS_ACCOUNT_ID.dkr.ecr.$env:AWS_REGION.amazonaws.com/$env:ECR_REPO:${{ env.IMAGE_TAG }}
 
   deploy-ecs:
     needs: ecr-push
@@ -105,12 +116,20 @@ jobs:
     runs-on: [self-hosted, Windows, X64, malab]
 
     steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Deploy ECS Service
+        shell: powershell
         run: |
-          aws ecs update-service ^
-          --cluster my-cluster ^
-          --service my-service ^
-          --force-new-deployment
+          aws ecs update-service `
+            --cluster $env:ECS_CLUSTER `
+            --service $env:ECS_SERVICE `
+            --force-new-deployment
 
   notify:
     if: failure()
@@ -119,7 +138,6 @@ jobs:
       - build
       - unit-test
       - integration-test
-      - security-scan
       - docker-build
       - ecr-push
       - deploy-ecs
@@ -128,6 +146,7 @@ jobs:
 
     steps:
       - name: Pipeline Failed
+        shell: powershell
         run: |
-          echo Pipeline Failed
-          echo Triggered by ${{ github.actor }}
+          Write-Host "Pipeline Failed"
+          Write-Host "Triggered by: ${{ github.actor }}"
