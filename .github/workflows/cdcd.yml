@@ -12,34 +12,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Build
-        run: echo "Build completed"
+        run: mvn clean package -DskipTests
 
   unit-test:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Running unit tests"
+      - run: mvn test
 
   integration-test:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Running integration tests"
+      - run: mvn verify
 
   security-scan:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Running security scan"
+      - run: mvn org.owasp:dependency-check-maven:check
 
-  deploy:
+  docker-build:
     needs:
       - unit-test
       - integration-test
@@ -48,4 +50,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - run: echo "Deploying application"
+      - uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -t myapp:${{ github.sha }} .
+
+  ecr-push:
+    needs: docker-build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 | \
+          docker login --username AWS --password-stdin \
+          123456789012.dkr.ecr.ap-south-1.amazonaws.com
+
+      - name: Push Image
+        run: |
+          docker tag myapp:${{ github.sha }} \
+          123456789012.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
+
+          docker push \
+          123456789012.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
