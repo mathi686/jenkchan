@@ -1,0 +1,51 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: echo "Build completed"
+
+  unit-test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Running unit tests"
+
+  integration-test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Running integration tests"
+
+  security-scan:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Running security scan"
+
+  deploy:
+    needs:
+      - unit-test
+      - integration-test
+      - security-scan
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: echo "Deploying application"
